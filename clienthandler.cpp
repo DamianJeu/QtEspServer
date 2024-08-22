@@ -4,6 +4,7 @@
 #include <QEventLoop>
 #include <QTcpSocket>
 #include <QString>
+#include "chartwindow.h"
 
 quint64 Client::numClients;
 
@@ -14,20 +15,19 @@ Client::Client(QObject *parent, qintptr handle)
 
 Client::~Client()
 {
-    qDebug()<<"Client deleted";
-    if(numClients)numClients--;
+    qDebug() << "Client deleted";
+    if (numClients) numClients--;
 }
 
 void Client::run()
 {
-
     clientSocket = new QTcpSocket();
 
-    if( !clientSocket->setSocketDescriptor(this->handle))
+    if (!clientSocket->setSocketDescriptor(this->handle))
     {
-        qCritical()<<"Could not set socket descriptor";
+        qCritical() << "Could not set socket descriptor";
         delete clientSocket;
-        clientSocket = nullptr;  // Zapobieganie podwójnemu usunięciu
+        clientSocket = nullptr;
         return;
     }
     else
@@ -38,37 +38,58 @@ void Client::run()
         QString threadName = "ClientHandlerThread_" + QString::number(numClients);
         QThread::currentThread()->setObjectName(threadName);
 
-        qDebug()<<"Client connected on thread: "<<QThread::currentThread();
+        qDebug() << "Client connected on thread: " << QThread::currentThread();
+
+        // Przekazanie sygnału do głównego wątku w celu utworzenia okna
+        ChartWindow *chartWindow = nullptr;
+        QMetaObject::invokeMethod(QApplication::instance(), [this, &chartWindow]() {
+            chartWindow = new ChartWindow();
+            chartWindow->show();
+        }, Qt::QueuedConnection);
 
         connect(clientSocket, &QTcpSocket::readyRead, this, [&]()
                 {
-                    qDebug()<<"Data received from: "<<QThread::currentThread()<<clientSocket->readAll();
+                    qDebug() << "Data received from: " << QThread::currentThread() << clientSocket->readAll();
+
                 }, Qt::QueuedConnection);
 
         connect(clientSocket, &QTcpSocket::disconnected, this, [&]()
                 {
-                    qDebug()<<"Client disconnected on thread: "<<QThread::currentThread();
+                    qDebug() << "Client disconnected on thread: " << QThread::currentThread();
                     clientSocket->deleteLater();
+
+                    // Zamykanie okna w głównym wątku
+                    QMetaObject::invokeMethod(QApplication::instance(), [chartWindow]() {
+                        if (chartWindow) {
+                            chartWindow->close();
+                            chartWindow->deleteLater();
+                        }
+                    }, Qt::QueuedConnection);
+
                     clientSocket = nullptr;
                     loop.quit();
-
                 }, Qt::QueuedConnection);
 
         connect(this, &Client::disconnect, clientSocket, &QTcpSocket::disconnectFromHost, Qt::QueuedConnection);
 
-
         loop.exec();
 
         qDebug() << "Event loop closed";
-        //deleteLater();
+        QMetaObject::invokeMethod(QApplication::instance(), [chartWindow]() {
+            if (chartWindow) {
+                chartWindow->deleteLater();
+            }
+        }, Qt::QueuedConnection);
+
+        this->deleteLater();
     }
 }
 
 void Client::serverStoped()
 {
-    if(clientSocket!=nullptr)
+    if (clientSocket != nullptr)
     {
         emit disconnect();
-        qDebug()<<"Server stopped" << QThread::currentThread();
+        qDebug() << "Server stopped" << QThread::currentThread();
     }
 }

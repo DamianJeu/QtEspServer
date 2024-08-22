@@ -3,6 +3,7 @@
 #include "clienthandler.h"
 #include <QThread>
 
+
 EspServer::EspServer(QObject *parent) : QTcpServer(parent)
 {
 
