@@ -6,6 +6,7 @@
 #include <QChartView>
 #include <QMainWindow>
 
+
 class ChartWindow : public QMainWindow
 {
     Q_OBJECT
@@ -14,6 +15,14 @@ public:
     explicit ChartWindow(QWidget *parent = nullptr);
     ~ChartWindow();
 
+public slots:
+
+    void clearChart();
+    void addNewSample(double point);
+    void setNewMaxY(double maxY);
+    void setNewMinY(double minY);
+    void setXValue(quint16 newXValue);
+
 private:
     QChartView *chartView;
     QChart *chart;
@@ -21,6 +30,8 @@ private:
     QValueAxis *axisX;
     QValueAxis *axisY;
 
+    quint16 m_xValue;
+    double m_maxY;
 
 };
 

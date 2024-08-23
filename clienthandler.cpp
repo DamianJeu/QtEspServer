@@ -4,11 +4,14 @@
 #include <QEventLoop>
 #include <QTcpSocket>
 #include <QString>
-#include "chartwindow.h"
+
+
+#include <QRegularExpression>
 
 quint64 Client::numClients;
 
-Client::Client(QObject *parent, qintptr handle)
+Client::Client(QObject *parent, qintptr handle):
+    chartWindow{nullptr}
 {
     this->handle = handle;
 }
@@ -40,26 +43,24 @@ void Client::run()
 
         qDebug() << "Client connected on thread: " << QThread::currentThread();
 
-        // Przekazanie sygnału do głównego wątku w celu utworzenia okna
-        ChartWindow *chartWindow = nullptr;
-        QMetaObject::invokeMethod(QApplication::instance(), [this, &chartWindow]() {
+        emit newClientIp(clientSocket->peerAddress().toString());
+
+        // Creating window ChartWindow in main thread
+        QMetaObject::invokeMethod(QApplication::instance(), [this]() {
             chartWindow = new ChartWindow();
+            chartWindow->setWindowTitle("Client: " + QString::number(numClients));
             chartWindow->show();
         }, Qt::QueuedConnection);
 
-        connect(clientSocket, &QTcpSocket::readyRead, this, [&]()
-                {
-                    qDebug() << "Data received from: " << QThread::currentThread() << clientSocket->readAll();
-
-                }, Qt::QueuedConnection);
+        connect(clientSocket, &QTcpSocket::readyRead, this, &Client::addNewSample, Qt::AutoConnection);
 
         connect(clientSocket, &QTcpSocket::disconnected, this, [&]()
                 {
                     qDebug() << "Client disconnected on thread: " << QThread::currentThread();
                     clientSocket->deleteLater();
 
-                    // Zamykanie okna w głównym wątku
-                    QMetaObject::invokeMethod(QApplication::instance(), [chartWindow]() {
+                    // Closing chart window in main thread
+                    QMetaObject::invokeMethod(QApplication::instance(), [this]() {
                         if (chartWindow) {
                             chartWindow->close();
                             chartWindow->deleteLater();
@@ -68,22 +69,38 @@ void Client::run()
 
                     clientSocket = nullptr;
                     loop.quit();
-                }, Qt::QueuedConnection);
+                }, Qt::AutoConnection);
 
         connect(this, &Client::disconnect, clientSocket, &QTcpSocket::disconnectFromHost, Qt::QueuedConnection);
 
         loop.exec();
 
         qDebug() << "Event loop closed";
-        QMetaObject::invokeMethod(QApplication::instance(), [chartWindow]() {
-            if (chartWindow) {
-                chartWindow->deleteLater();
-            }
-        }, Qt::QueuedConnection);
 
         this->deleteLater();
     }
 }
+
+void Client::addNewSample()
+{
+    if(chartWindow == nullptr)
+    {
+        return;
+    }
+
+    QString data = clientSocket->readAll();
+
+    QRegularExpression regex("y=(\\d+)");
+    QRegularExpressionMatch match = regex.match(data);
+
+    // Send data to main thread
+    QMetaObject::invokeMethod(chartWindow, [this, captured = match.captured(1).toDouble()]() {
+        chartWindow->addNewSample(captured);
+    }, Qt::QueuedConnection);
+
+    qDebug() << "Data received from: " << QThread::currentThread();
+}
+
 
 void Client::serverStoped()
 {
@@ -93,3 +110,4 @@ void Client::serverStoped()
         qDebug() << "Server stopped" << QThread::currentThread();
     }
 }
+

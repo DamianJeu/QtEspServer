@@ -17,10 +17,12 @@ public:
 public slots:
     void startServer();
     void serverStop();
+  //  void newIp(QString ip);
 
 signals:
 
     void serverStopped();
+    void newClientIp(QString ip);
 
 protected:
     void incomingConnection(qintptr handle) override;

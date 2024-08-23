@@ -24,6 +24,8 @@ private slots:
 
     void on_pushButtonStart_clicked();
 
+    void add_ip_to_list(QString ip);
+
 private:
     Ui::MainWindow *ui;
     EspServer *server;

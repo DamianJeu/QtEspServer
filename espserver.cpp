@@ -39,9 +39,16 @@ void EspServer::incomingConnection(qintptr handle)
 {
     qInfo()<<"New client connected";
 
-
     Client *client = new Client(nullptr, handle);
+
     connect(this, &EspServer::serverStopped, client, &Client::serverStoped, Qt::QueuedConnection);
+    connect(client, &Client::newClientIp, this, [this](QString ip)
+            {
+                emit newClientIp(ip);
+            }, Qt::QueuedConnection);
+
+
+
     client->setAutoDelete(true);
     pool.start(client);
 }

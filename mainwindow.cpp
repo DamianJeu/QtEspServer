@@ -7,6 +7,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     server = new EspServer(this);
+    connect(server, &EspServer::newClientIp, this, &MainWindow::add_ip_to_list);
 }
 
 MainWindow::~MainWindow()
@@ -24,5 +25,11 @@ void MainWindow::on_pushButtonStop_clicked()
 void MainWindow::on_pushButtonStart_clicked()
 {
     server->startServer();
+}
+
+void MainWindow::add_ip_to_list(QString ip)
+{
+
+    ui->textBrowserIp->append(ip);
 }
 

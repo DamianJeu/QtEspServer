@@ -2,34 +2,25 @@
 
 ChartWindow::ChartWindow(QWidget *parent)
     : QMainWindow(nullptr),
-    chart{new QChart()},
+    chart{new QChart(nullptr)},
     series{new QLineSeries(chart)},
     axisX{new QValueAxis(chart)},
     axisY{new QValueAxis(chart)},
     chartView{new QChartView(this)}
 {
-    // Dodanie danych do serii
 
-    series->append(0, 6);
-    series->append(2, 4);
-    series->append(3, 8);
-    series->append(7, 4);
-    series->append(10, 5);
 
-    chart->createDefaultAxes();
 
+    axisY->setRange(0, 10);
     axisY->setTickCount(10);
-    axisY->setMax(10);
-    axisY->setMin(0);
-    axisY->applyNiceNumbers();
-    axisY->setTickType(QValueAxis::TicksFixed);
+   // axisY->applyNiceNumbers();
+  //  axisY->setTickType(QValueAxis::TicksFixed);
 
-    axisX->setMax(100);
-    axisX->setMin(0);
+    axisX->setRange(0, 100);
     axisX->setLabelFormat("%d");
     axisX->setTickCount(10);
-    axisX->applyNiceNumbers();
-    axisX->setTickType(QValueAxis::TicksFixed);
+   // axisX->applyNiceNumbers();
+    //axisX->setTickType(QValueAxis::TicksFixed);
     axisX->setTitleText("Odczyt");
 
     chart->legend()->hide();
@@ -43,14 +34,62 @@ ChartWindow::ChartWindow(QWidget *parent)
     series->setColor(Qt::red);
     series->attachAxis(axisX);
 
+    chartView->setChart(chart);
     chartView->setRenderHint(QPainter::Antialiasing);
 
     setCentralWidget(chartView);
 
-    resize(400, 300);
+    resize(600, 400);
+    chart->scroll(0,0);
 }
 
 ChartWindow::~ChartWindow()
 {
-    // Automatyczne zwolnienie zasobów przez Qt dzięki QObject
+    qDebug() << "ChartWindow destructor";
+
+    delete chart;
+
+}
+
+void ChartWindow::clearChart()
+{
+    series->clear();
+
+    chart->scroll(0,0);
+
+    axisX->setRange(0, 100);
+    axisY->setRange(0, 10);
+
+}
+
+void ChartWindow::addNewSample(double point)
+{
+
+    if(++m_xValue >= axisX->max())
+    {
+        axisX->setMax(axisX->max()+10);
+    }
+
+    if(point >= axisY->max())
+    {
+
+        axisY->setMax(point+10);
+    }
+
+    series->append(m_xValue, point);
+}
+
+void ChartWindow::setNewMaxY(double maxY)
+{
+    Q_UNUSED(maxY);
+}
+
+void ChartWindow::setNewMinY(double minY)
+{
+    Q_UNUSED(minY);
+}
+
+void ChartWindow::setXValue(quint16 newXValue)
+{
+    Q_UNUSED(newXValue);
 }
