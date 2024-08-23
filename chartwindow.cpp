@@ -9,17 +9,15 @@ ChartWindow::ChartWindow(QWidget *parent)
     chartView{new QChartView(this)}
 {
 
-
-
     axisY->setRange(0, 10);
     axisY->setTickCount(10);
-   // axisY->applyNiceNumbers();
-  //  axisY->setTickType(QValueAxis::TicksFixed);
+    axisY->applyNiceNumbers();
+    //  axisY->setTickType(QValueAxis::TicksFixed);
 
     axisX->setRange(0, 100);
     axisX->setLabelFormat("%d");
     axisX->setTickCount(10);
-   // axisX->applyNiceNumbers();
+    axisX->applyNiceNumbers();
     //axisX->setTickType(QValueAxis::TicksFixed);
     axisX->setTitleText("Odczyt");
 
@@ -37,10 +35,13 @@ ChartWindow::ChartWindow(QWidget *parent)
     chartView->setChart(chart);
     chartView->setRenderHint(QPainter::Antialiasing);
 
+    this->clearChart();
+
     setCentralWidget(chartView);
 
     resize(600, 400);
-    chart->scroll(0,0);
+
+
 }
 
 ChartWindow::~ChartWindow()

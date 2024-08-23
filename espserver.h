@@ -17,6 +17,7 @@ public:
 public slots:
     void startServer();
     void serverStop();
+    void on_clientDisconnected();
   //  void newIp(QString ip);
 
 signals:

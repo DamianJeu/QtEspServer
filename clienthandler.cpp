@@ -10,8 +10,7 @@
 
 quint64 Client::numClients;
 
-Client::Client(QObject *parent, qintptr handle):
-    chartWindow{nullptr}
+Client::Client(QObject *parent, qintptr handle)
 {
     this->handle = handle;
 }
@@ -22,92 +21,68 @@ Client::~Client()
     if (numClients) numClients--;
 }
 
-void Client::run()
+void Client::startClient()
 {
+
+
     clientSocket = new QTcpSocket();
 
-    if (!clientSocket->setSocketDescriptor(this->handle))
+    if(!clientSocket->setSocketDescriptor(handle))
     {
+
         qCritical() << "Could not set socket descriptor";
-        delete clientSocket;
-        clientSocket = nullptr;
         return;
+
     }
-    else
-    {
-        numClients++;
-        QEventLoop loop;
 
-        QString threadName = "ClientHandlerThread_" + QString::number(numClients);
-        QThread::currentThread()->setObjectName(threadName);
+    loop = new QEventLoop();
 
-        qDebug() << "Client connected on thread: " << QThread::currentThread();
+    numClients++;
 
-        emit newClientIp(clientSocket->peerAddress().toString());
+    QThread::currentThread()->setObjectName("ClientThread" + QString::number(numClients));
 
-        // Creating window ChartWindow in main thread
-        QMetaObject::invokeMethod(QApplication::instance(), [this]() {
-            chartWindow = new ChartWindow();
-            chartWindow->setWindowTitle("Client: " + QString::number(numClients));
-            chartWindow->show();
-        }, Qt::QueuedConnection);
+    connect(clientSocket,&QTcpSocket::disconnected, this, [this]()
+            {
+                this->stopClient();
 
-        connect(clientSocket, &QTcpSocket::readyRead, this, &Client::addNewSample, Qt::AutoConnection);
+            });
 
-        connect(clientSocket, &QTcpSocket::disconnected, this, [&]()
-                {
-                    qDebug() << "Client disconnected on thread: " << QThread::currentThread();
-                    clientSocket->deleteLater();
+    connect(clientSocket, &QTcpSocket::readyRead, this, [this]()
+            {
+                QByteArray data = clientSocket->readAll();
+                QString str(data);
+                qDebug() << "Data received: " << str << "on Thread: " << QThread::currentThread();
 
-                    // Closing chart window in main thread
-                    QMetaObject::invokeMethod(QApplication::instance(), [this]() {
-                        if (chartWindow) {
-                            chartWindow->close();
-                            chartWindow->deleteLater();
-                        }
-                    }, Qt::QueuedConnection);
 
-                    clientSocket = nullptr;
-                    loop.quit();
-                }, Qt::AutoConnection);
+                QRegularExpression regex("y=(\\d+)");
+                QRegularExpressionMatch match = regex.match(str);
 
-        connect(this, &Client::disconnect, clientSocket, &QTcpSocket::disconnectFromHost, Qt::QueuedConnection);
 
-        loop.exec();
+                emit newSample(match.captured(1).toDouble());
+            });
 
-        qDebug() << "Event loop closed";
 
-        this->deleteLater();
-    }
+    loop->exec();
 }
 
-void Client::addNewSample()
+void Client::stopClient()
 {
-    if(chartWindow == nullptr)
-    {
-        return;
-    }
+    clientSocket->disconnect();
+    clientSocket->close();
+    clientSocket->deleteLater();
 
-    QString data = clientSocket->readAll();
+    loop->exit();
+    loop->deleteLater();
 
-    QRegularExpression regex("y=(\\d+)");
-    QRegularExpressionMatch match = regex.match(data);
+    this->deleteLater();
 
-    // Send data to main thread
-    QMetaObject::invokeMethod(chartWindow, [this, captured = match.captured(1).toDouble()]() {
-        chartWindow->addNewSample(captured);
-    }, Qt::QueuedConnection);
+    qDebug() << "Client disconnected";
 
-    qDebug() << "Data received from: " << QThread::currentThread();
+    emit clientDisconnected();
 }
 
 
-void Client::serverStoped()
-{
-    if (clientSocket != nullptr)
-    {
-        emit disconnect();
-        qDebug() << "Server stopped" << QThread::currentThread();
-    }
-}
+
+
+
 

@@ -6,33 +6,31 @@
 #include <QEventLoop>
 #include "chartwindow.h"
 
-class Client : public QObject, public QRunnable
+class Client : public QObject
 {
     Q_OBJECT
 public:
     explicit Client(QObject *parent = nullptr, qintptr handle = 0);
     ~Client();
 
-    void run() override;
+
 
 signals:
-
-    void disconnect();
-    void newClientIp(QString ip);
+    void clientDisconnected();
+    void newSample(double sample);
 
 public slots:
 
-    void serverStoped();
-
-private slots:
-
-    void addNewSample();
+    void startClient();
+    void stopClient();
 
 private:
+
     qintptr handle;
     static quint64 numClients;
     QTcpSocket *clientSocket;
-    ChartWindow *chartWindow;
+    QEventLoop *loop;
+
 
 };
 

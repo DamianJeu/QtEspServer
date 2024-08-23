@@ -30,9 +30,15 @@ void EspServer::startServer()
 
 void EspServer::serverStop()
 {
-    this->close();
     emit serverStopped();
-    qDebug()<<"Server stopped";
+    this->close();
+
+    qInfo()<<"Server stopped";
+}
+
+void EspServer::on_clientDisconnected()
+{
+    Q_UNUSED(this);
 }
 
 void EspServer::incomingConnection(qintptr handle)
@@ -40,17 +46,26 @@ void EspServer::incomingConnection(qintptr handle)
     qInfo()<<"New client connected";
 
     Client *client = new Client(nullptr, handle);
+    QThread *thread = new QThread();
+    ChartWindow *chart = new ChartWindow(nullptr);
+    chart->show();
 
-    connect(this, &EspServer::serverStopped, client, &Client::serverStoped, Qt::QueuedConnection);
-    connect(client, &Client::newClientIp, this, [this](QString ip)
+    client->moveToThread(thread);
+
+    connect(thread, &QThread::started, client, &Client::startClient);
+    connect(this, &EspServer::serverStopped, client, &Client::stopClient, Qt::QueuedConnection);
+    connect(client, &Client::clientDisconnected, thread, &QThread::quit, Qt::QueuedConnection);
+    connect(client, &Client::clientDisconnected, this,[=]()
             {
-                emit newClientIp(ip);
+                chart->close();
+                chart->deleteLater();
+
             }, Qt::QueuedConnection);
+    connect(client, &Client::newSample, chart, &ChartWindow::addNewSample, Qt::QueuedConnection);
+    connect(thread, &QThread::finished, thread, &QObject::deleteLater);
 
+    thread->start();
 
-
-    client->setAutoDelete(true);
-    pool.start(client);
 }
 
 
