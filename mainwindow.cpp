@@ -8,6 +8,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     server = new EspServer(this);
     connect(server, &EspServer::newClientIp, this, &MainWindow::add_ip_to_list);
+    connect(server, &EspServer::clientDisconnected, this, &MainWindow::remove_ip_address);
 }
 
 MainWindow::~MainWindow()
@@ -31,5 +32,23 @@ void MainWindow::add_ip_to_list(QString ip)
 {
 
     ui->textBrowserIp->append(ip);
+}
+
+void MainWindow::remove_ip_address(QString ip)
+{
+    QString allText = ui->textBrowserIp->toPlainText();
+
+    QStringList lines = allText.split("\n");
+
+    QStringList processedLines;
+
+    for (const QString &line : lines) {
+        if (!line.contains(ip)) {
+            processedLines.append(line);
+        }
+    }
+
+    ui->textBrowserIp->clear();
+    ui->textBrowserIp->setPlainText(processedLines.join("\n"));
 }
 

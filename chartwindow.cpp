@@ -8,17 +8,10 @@ ChartWindow::ChartWindow(QWidget *parent)
     axisY{new QValueAxis(chart)},
     chartView{new QChartView(this)}
 {
-
     axisY->setRange(0, 10);
-    axisY->setTickCount(10);
-    axisY->applyNiceNumbers();
-    //  axisY->setTickType(QValueAxis::TicksFixed);
-
     axisX->setRange(0, 100);
     axisX->setLabelFormat("%d");
     axisX->setTickCount(10);
-    axisX->applyNiceNumbers();
-    //axisX->setTickType(QValueAxis::TicksFixed);
     axisX->setTitleText("Odczyt");
 
     chart->legend()->hide();
@@ -37,16 +30,30 @@ ChartWindow::ChartWindow(QWidget *parent)
 
     this->clearChart();
 
-    setCentralWidget(chartView);
+    // Tworzymy główny widżet, który będzie zawierał layout
+    QWidget *mainWidget = new QWidget(this);
+    QVBoxLayout *mainLayout = new QVBoxLayout(mainWidget);
+
+    // Dodajemy chartView do layoutu
+    mainLayout->addWidget(chartView);
+
+    // Tworzymy przycisk i dodajemy go do layoutu
+    pushButton = new QPushButton("Clear", this);
+    mainLayout->addWidget(pushButton);
+
+    // Ustawiamy mainWidget jako główny widżet okna
+    setCentralWidget(mainWidget);
+
+    connect(pushButton, &QPushButton::clicked, this, &ChartWindow::clearChart, Qt::QueuedConnection);
 
     resize(600, 400);
-
-
 }
 
 ChartWindow::~ChartWindow()
 {
     qDebug() << "ChartWindow destructor";
+
+
 
     delete chart;
 
@@ -56,10 +63,12 @@ void ChartWindow::clearChart()
 {
     series->clear();
 
-    chart->scroll(0,0);
+
 
     axisX->setRange(0, 100);
     axisY->setRange(0, 10);
+    m_xValue =0;
+    chart->scroll(0,0);
 
 }
 
@@ -93,4 +102,10 @@ void ChartWindow::setNewMinY(double minY)
 void ChartWindow::setXValue(quint16 newXValue)
 {
     Q_UNUSED(newXValue);
+}
+
+void ChartWindow::closeEvent(QCloseEvent *event)
+{
+    qDebug()<< "ChartWindow closeEvent";
+    emit closeWindow();
 }

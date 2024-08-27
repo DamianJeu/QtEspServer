@@ -18,6 +18,7 @@ public:
 signals:
     void clientDisconnected();
     void newSample(double sample);
+    void rename_chart_window(QString name);
 
 public slots:
 

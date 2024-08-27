@@ -25,6 +25,7 @@ private slots:
     void on_pushButtonStart_clicked();
 
     void add_ip_to_list(QString ip);
+    void remove_ip_address(QString ip);
 
 private:
     Ui::MainWindow *ui;

@@ -23,16 +23,25 @@ public slots:
     void setNewMinY(double minY);
     void setXValue(quint16 newXValue);
 
+signals:
+
+    void closeWindow();
+
 private:
     QChartView *chartView;
     QChart *chart;
     QLineSeries *series;
     QValueAxis *axisX;
     QValueAxis *axisY;
+    QPushButton *pushButton;
 
     quint16 m_xValue;
     double m_maxY;
 
+
+    // QWidget interface
+protected:
+    void closeEvent(QCloseEvent *event) override;
 };
 
 #endif // CHARTWINDOW_H

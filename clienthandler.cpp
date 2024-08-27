@@ -29,10 +29,8 @@ void Client::startClient()
 
     if(!clientSocket->setSocketDescriptor(handle))
     {
-
         qCritical() << "Could not set socket descriptor";
-        return;
-
+        return;   
     }
 
     loop = new QEventLoop();
@@ -40,6 +38,10 @@ void Client::startClient()
     numClients++;
 
     QThread::currentThread()->setObjectName("ClientThread" + QString::number(numClients));
+
+    QString windowName = "ClientThread " + QString::number(numClients) + QString{" IP: " } + clientSocket->peerAddress().toString();
+
+    emit rename_chart_window(windowName);
 
     connect(clientSocket,&QTcpSocket::disconnected, this, [this]()
             {
@@ -51,16 +53,13 @@ void Client::startClient()
             {
                 QByteArray data = clientSocket->readAll();
                 QString str(data);
-                qDebug() << "Data received: " << str << "on Thread: " << QThread::currentThread();
+               // qDebug() << "Data received: " << str << "on Thread: " << QThread::currentThread();
 
-
-                QRegularExpression regex("y=(\\d+)");
+                QRegularExpression regex("y=(\\d+[.,]?\\d*)");
                 QRegularExpressionMatch match = regex.match(str);
-
 
                 emit newSample(match.captured(1).toDouble());
             });
-
 
     loop->exec();
 }

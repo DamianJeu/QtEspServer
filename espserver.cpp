@@ -47,22 +47,34 @@ void EspServer::incomingConnection(qintptr handle)
 
     Client *client = new Client(nullptr, handle);
     QThread *thread = new QThread();
+
     ChartWindow *chart = new ChartWindow(nullptr);
     chart->show();
 
     client->moveToThread(thread);
 
     connect(thread, &QThread::started, client, &Client::startClient);
+    connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+
+    connect(chart, &ChartWindow::closeWindow, client, &Client::stopClient, Qt::QueuedConnection);
+
     connect(this, &EspServer::serverStopped, client, &Client::stopClient, Qt::QueuedConnection);
     connect(client, &Client::clientDisconnected, thread, &QThread::quit, Qt::QueuedConnection);
+    connect(client, &Client::newSample, chart, &ChartWindow::addNewSample, Qt::QueuedConnection);
+    connect(client, &Client::rename_chart_window, this, [=](QString name)
+            {
+                chart->setWindowTitle(name);
+                emit newClientIp(name);
+
+            }, Qt::QueuedConnection);
+
     connect(client, &Client::clientDisconnected, this,[=]()
             {
                 chart->close();
                 chart->deleteLater();
+                emit clientDisconnected(chart->windowTitle());
 
             }, Qt::QueuedConnection);
-    connect(client, &Client::newSample, chart, &ChartWindow::addNewSample, Qt::QueuedConnection);
-    connect(thread, &QThread::finished, thread, &QObject::deleteLater);
 
     thread->start();
 
