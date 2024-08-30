@@ -30,18 +30,14 @@ ChartWindow::ChartWindow(QWidget *parent)
 
     this->clearChart();
 
-    // Tworzymy główny widżet, który będzie zawierał layout
     QWidget *mainWidget = new QWidget(this);
     QVBoxLayout *mainLayout = new QVBoxLayout(mainWidget);
 
-    // Dodajemy chartView do layoutu
     mainLayout->addWidget(chartView);
 
-    // Tworzymy przycisk i dodajemy go do layoutu
     pushButton = new QPushButton("Clear", this);
     mainLayout->addWidget(pushButton);
 
-    // Ustawiamy mainWidget jako główny widżet okna
     setCentralWidget(mainWidget);
 
     connect(pushButton, &QPushButton::clicked, this, &ChartWindow::clearChart, Qt::QueuedConnection);
@@ -53,8 +49,6 @@ ChartWindow::~ChartWindow()
 {
     qDebug() << "ChartWindow destructor";
 
-
-
     delete chart;
 
 }
@@ -62,14 +56,10 @@ ChartWindow::~ChartWindow()
 void ChartWindow::clearChart()
 {
     series->clear();
-
-
-
     axisX->setRange(0, 100);
     axisY->setRange(0, 10);
     m_xValue =0;
     chart->scroll(0,0);
-
 }
 
 void ChartWindow::addNewSample(double point)
